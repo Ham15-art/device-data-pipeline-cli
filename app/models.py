@@ -1,5 +1,8 @@
 from pydantic import BaseModel
+from typing import Optional, Dict, Any
 
 class DeviceResponse(BaseModel):
-    status: str
-    response_time: float
+    device_id: str
+    data: Optional[Dict[str, Any]]
+    error: Optional[str]
+    duration: float

@@ -2,6 +2,8 @@ import aiohttp
 import asyncio
 import logging
 import time
+from app.models import DeviceResponse
+from typing import List
 
 start = time.perf_counter()
 logger = logging.getLogger(__name__)
@@ -27,12 +29,12 @@ async def fetch_device_info(session, device_id):
             logger.debug(f"Device {device_id} completed in {duration:.3f}s")
 
             # returns a coroutine
-            return {
-                "device_id": device_id, 
-                "data": data, 
-                "error": None,
-                "duration": duration
-                }
+            return DeviceResponse(
+                    device_id=device_id,
+                    data=data,
+                    error=None,
+                    duration=duration
+            )
 
         except Exception as e:
             duration = time.perf_counter() - start
@@ -42,15 +44,15 @@ async def fetch_device_info(session, device_id):
                 exc_info=True
             )
             # returns coroutine
-            return {
-                "device_id": device_id, 
-                "data": None, 
-                "error": str(e),
-                "duration": duration
-                }
+            return DeviceResponse(
+                    device_id=device_id,
+                    data=None,
+                    error=str(e),
+                    duration=duration
+            )
 
 
-async def fetch_all_devices(device_ids):
+async def fetch_all_devices(device_ids: list[str]) -> List[DeviceResponse]:
 
     timeout = aiohttp.ClientTimeout(total=5)
 
@@ -67,9 +69,9 @@ async def fetch_all_devices(device_ids):
         failed = 0
 
         for result in results:
-            if result["error"] is not None:
+            if result.error is not None:
                 logger.warning(
-                    f"Device {result['device_id']} failed: {result['error']}"
+                    f"Device {result.device_id} failed: {result.error}"
                 )
                 failed += 1
             else:

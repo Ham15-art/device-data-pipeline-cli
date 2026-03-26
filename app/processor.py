@@ -5,6 +5,7 @@ import json
 import asyncio
 from app.api_client import fetch_all_devices
 import logging
+from app.models import DeviceResponse
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def process_file(input_file: Path, output_file: Path) -> None:
     device_ids = df["device_id"].tolist()
 
     try:
-        results = asyncio.run(fetch_all_devices(device_ids))
+        results : list[DeviceResponse] = asyncio.run(fetch_all_devices(device_ids))
     except Exception:
         logger.error(f"API enrichment failed: ", exc_info=True)
         results = []
@@ -38,16 +39,21 @@ def process_file(input_file: Path, output_file: Path) -> None:
     if not results:
         logger.warning("No API results received, filling defaults")
         results = [
-            {"device_id": d, "data": None, "error": "no_data", "duration": None}
+            DeviceResponse(
+                device_id=d,
+                data=None,
+                error="no_data",
+                duration=0.0
+            )
             for d in device_ids
         ]
 
     # cleaning results: by considering cases: success | exception/error , in a pythonic way.
-    clean_results = [
+    clean_results: list[dict[str, object]] = [
         {
-            "device_id": r["device_id"],
-            "api_status": "error" if r["error"] else "success",
-            "api_response_time": r.get("duration"),
+            "device_id": r.device_id,
+            "api_status": "error" if r.error else "success",
+            "api_response_time": r.duration,
         }
         for r in results
     ]
@@ -63,8 +69,8 @@ def process_file(input_file: Path, output_file: Path) -> None:
 
     logger.info(f"Processing complete. Output saved to: {output_file}")
 
-    success_count = sum(1 for r in results if r["error"] is None)
-    error_count = sum(1 for r in results if r["error"] is not None)
+    success_count = sum(1 for r in results if r.error is None)
+    error_count = sum(1 for r in results if r.error is not None)
     summary = {
         "total_rows": len(df),
         "valid_temperatures": int(df["has_valid_temperature"].sum()),

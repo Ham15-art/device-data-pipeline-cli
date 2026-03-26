@@ -11,6 +11,7 @@ The project is structured with separation of concerns in mind:
 - Processing logic is isolated from API communication
 - Validation is handled independently
 - Async operations are centralized in the API layer
+- Structured data models (Pydantic) used for API responses
 
 This makes the pipeline easier to extend, test, and adapt to real-world scenarios.
 
