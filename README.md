@@ -1,36 +1,61 @@
-# Excel Workflow CLI with API Enrichment
+# Device Data Pipeline (Python CLI, Async API Integration)
+A Python CLI tool I built to process device data from CSV files — validating inputs, enriching records through external APIs, and exporting clean results.
+The idea came from wanting to simulate a real industrial data pipeline (the kind you'd see feeding into monitoring or SCADA systems), and to get hands-on with async Python in a practical context.
 
-What this project does:
-Processes CSV device data, validates it, categorizes temperature values, and enriches each device with external API data asynchronously.
+## What it does
+Takes a CSV of device data, validates it, categorizes temperature readings, enriches each record via asynchronous API calls, and outputs a clean CSV along with a JSON summary.
+Load CSV → Validate → Transform → Async API calls → Merge → Export
 
-Architecture:
+## Design Approach
+The project is structured with separation of concerns in mind:
+- Processing logic is isolated from API communication
+- Validation is handled independently
+- Async operations are centralized in the API layer
+
+This makes the pipeline easier to extend, test, and adapt to real-world scenarios.
+
+## Project structure
+structure:
 app/
-├── main.py           # CLI entry point
-├── processor.py      # core business logic
-├── api_client.py     # async API communication
-├── validators.py     # input validation
-├── models.py         # data structures (pydantic-ready)
+├── main.py         # CLI entry point & argument parsing
+├── processor.py    # Core workflow orchestration
+├── api_client.py   # Async API communication layer
+├── validators.py   # Input validation logic
+├── models.py       # Data models (Pydantic-ready)
 
-Features:
-CSV processing with pandas
-Data validation
-Temperature categorization
-Async API calls (aiohttp)
-JSON summary export
-CLI interface
+I kept the modules intentionally separate — validation, processing, and API logic don't bleed into each other, which made testing and extending things much easier.
 
-How to run:
+## Stack
+- Python
+- pandas (data processing)
+- asyncio & aiohttp (asynchronous API calls)
+
+## Running it
 pip install -r requirements.txt
+
 python -m app.main \
   --input data/input/devices.csv \
   --output data/output/result.csv
+Outputs:
 
-Example input/output:
-input: input.csv
-output: output.csv and summary.json
+data/output/result.csv — enriched dataset
+data/output/summary.json — processing stats
 
-Tech stack:
-Python
-pandas
-asyncio
-aiohttp
+## Example
+
+### Input (raw device data)
+![Input CSV](assets/input_example.png)
+
+### Output (processed & enriched)
+![Output CSV](assets/output_example.png)
+
+## What I'd add next
+
+Retry/backoff for flaky API calls
+Structured logging to file
+.env / YAML config support
+Docker setup
+Hook into real industrial protocols (OPC UA, etc.)
+
+
+Built to simulate real-world data processing workflows and strengthen practical experience in async Python, API integration, and clean software design.
