@@ -4,6 +4,9 @@ from app.validators import validate_required_columns
 import json
 import asyncio
 from app.api_client import fetch_all_devices
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def process_file(input_file: Path, output_file: Path) -> None:
@@ -23,10 +26,14 @@ def process_file(input_file: Path, output_file: Path) -> None:
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # 🔥 API ENRICHMENT STEP: async operating
+    # API ENRICHMENT STEP: async operating
     device_ids = df["device_id"].tolist()
-
-    results = asyncio.run(fetch_all_devices(device_ids))
+    
+    try:
+        results = asyncio.run(fetch_all_devices(device_ids))
+    except Exception as e:
+        logger.error(f"API enrichment failed: {e}")
+        results=[]
 
     # cleaning results: by considering cases: success | exception | other(fallback)
     clean_results = []

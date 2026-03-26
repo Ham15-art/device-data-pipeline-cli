@@ -1,22 +1,62 @@
-import requests
-import logging
 import aiohttp
 import asyncio
+import logging
 
+logger = logging.getLogger(__name__)
 
+# protects API from overload when implemented in line 14
 semaphore = asyncio.Semaphore(10)
 
+
 async def fetch_device_info(session, device_id):
+
     url = f"https://postman-echo.com/get?device_id={device_id}"
-    async with session.get(url) as response:
-        response.raise_for_status()
-        return await response.json()
+
+    async with semaphore:
+        logger.debug(f"[API CALL] device_id={device_id} url={url}")
+
+        try:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                data = await response.json()
+
+                logger.debug(f"Device {device_id} response received")
+
+                # returns dict
+                return {"device_id": device_id, "data": data, "error": None}
+
+        except Exception as e:
+            logger.error(
+                f"failed to fetch device {device_id} (url={url}): {e}", exc_info=True
+            )
+            # returns dict
+            return {"device_id": device_id, "data": None, "error": str(e)}
 
 
 async def fetch_all_devices(device_ids):
-    async with aiohttp.ClientSession() as session:
+
+    timeout = aiohttp.ClientTimeout(total=5)
+
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+
         tasks = [fetch_device_info(session, device_id) for device_id in device_ids]
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        return results
+        logger.info(f"Starting API enrichment for {len(device_ids)} devices...")
 
+        results = await asyncio.gather(*tasks)
+
+        # log summary for Api calling
+        success = 0
+        failed = 0
+
+        for result in results:
+            if result["error"] is not None:
+                logger.warning(
+                    f"Device {result['device_id']} failed: {result['error']}"
+                )
+                failed += 1
+            else:
+                success += 1
+
+        logger.info(f"API enrichment complete: {success} success, {failed} failed")
+        return results
