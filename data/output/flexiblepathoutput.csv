@@ -1,0 +1,6 @@
+device_id,temperature,status,has_valid_temperature,temperature_category
+D-1001,23.5,active,True,normal
+D-1002,19.8,active,True,low
+D-1003,,inactive,False,invalid
+D-1004,,active,False,invalid
+D-1005,31.2,active,True,high

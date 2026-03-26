@@ -1,0 +1,6 @@
+device_id,temperature,status
+D-1001,23.5,active
+D-1002,19.8,active
+D-1003,,inactive
+D-1004,abc,active
+D-1005,31.2,active

@@ -1,0 +1,6 @@
+device_id,temperature,status,has_valid_temperature,temperature_category,api_status,api_response_time
+D-1001,23.5,active,True,normal,online,0.471026
+D-1002,19.8,active,True,low,online,0.358381
+D-1003,,inactive,False,invalid,online,0.347356
+D-1004,,active,False,invalid,online,0.344784
+D-1005,31.2,active,True,high,online,0.357421
