@@ -28,53 +28,49 @@ def process_file(input_file: Path, output_file: Path) -> None:
 
     # API ENRICHMENT STEP: async operating
     device_ids = df["device_id"].tolist()
-    
+
     try:
         results = asyncio.run(fetch_all_devices(device_ids))
-    except Exception as e:
-        logger.error(f"API enrichment failed: {e}")
-        results=[]
+    except Exception:
+        logger.error(f"API enrichment failed: ", exc_info=True)
+        results = []
 
-    # cleaning results: by considering cases: success | exception | other(fallback)
-    clean_results = []
+    if not results:
+        logger.warning("No API results received, filling defaults")
+        results = [
+            {"device_id": d, "data": None, "error": "no_data", "duration": None}
+            for d in device_ids
+        ]
 
-    for device_id, result in zip(device_ids, results):
-        if isinstance(result, Exception):
-            clean_results.append({
-            "device_id": device_id,
-            "api_status": "error",
-            "api_response_time": None
-        })
-        elif isinstance(result, dict):
-            clean_results.append({
-            "device_id": device_id,
-            "api_status": result.get("status"),
-            "api_response_time": result.get("response_time")
-        })
+    # cleaning results: by considering cases: success | exception/error , in a pythonic way.
+    clean_results = [
+        {
+            "device_id": r["device_id"],
+            "api_status": "error" if r["error"] else "success",
+            "api_response_time": r.get("duration"),
+        }
+        for r in results
+    ]
 
-        else:
-        # fallback safety (VERY professional)
-            clean_results.append({
-            "device_id": device_id,
-            "api_status": "unknown",
-            "api_response_time": None
-        })
-            
-    api_df=pd.DataFrame(clean_results)
+    api_df = pd.DataFrame(clean_results)
 
     # merge API data into original dataframe
     df = df.merge(api_df, on="device_id", how="left")
     # clean output regarding time in seconds
-    df["api_response_time"] = df["api_response_time"].round(3)
+    df["api_response_time"] = df["api_response_time"].astype(float).round(3)
 
     df.to_csv(output_file, index=False)
 
-    print(f"Processing complete. Output saved to: {output_file}")
+    logger.info(f"Processing complete. Output saved to: {output_file}")
 
+    success_count = sum(1 for r in results if r["error"] is None)
+    error_count = sum(1 for r in results if r["error"] is not None)
     summary = {
         "total_rows": len(df),
         "valid_temperatures": int(df["has_valid_temperature"].sum()),
         "invalid_temperatures": int((~df["has_valid_temperature"]).sum()),
+        "api_success": success_count,
+        "api_errors": error_count,
     }
 
     summary_file = output_file.parent / "summary.json"

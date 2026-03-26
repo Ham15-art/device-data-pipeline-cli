@@ -30,7 +30,8 @@ async def fetch_device_info(session, device_id):
             return {
                 "device_id": device_id, 
                 "data": data, 
-                "error": None
+                "error": None,
+                "duration": duration
                 }
 
         except Exception as e:
@@ -44,7 +45,8 @@ async def fetch_device_info(session, device_id):
             return {
                 "device_id": device_id, 
                 "data": None, 
-                "error": str(e)
+                "error": str(e),
+                "duration": duration
                 }
 
 
