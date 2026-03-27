@@ -1,10 +1,13 @@
 # Device Data Pipeline (Python CLI, Async API Integration)
-A Python CLI tool I built to process device data from CSV files — validating inputs, enriching records through external APIs, and exporting clean results.
+A production-inspired data pipeline CLI designed to process, validate, and enrich device data using asynchronous API integration.
 The idea came from wanting to simulate a real industrial data pipeline (the kind you'd see feeding into monitoring or SCADA systems), and to get hands-on with async Python in a practical context.
 
 ## What it does
 Takes a CSV of device data, validates it, categorizes temperature readings, enriches each record via asynchronous API calls, and outputs a clean CSV along with a JSON summary.
 Load CSV → Validate → Transform → Async API calls → Merge → Export
+
+## Why it matters
+This type of pipeline is commonly used in industrial environments to prepare device telemetry data for monitoring, analytics, or alerting systems.
 
 ## Design Approach
 The project is structured with separation of concerns in mind:
@@ -57,7 +60,9 @@ data/output/summary.json — processing stats
 - Invalid or missing temperature values are detected
 - Temperature values are categorized (low / normal / high)
 - Each device is enriched via async API calls
+- To avoid API overload and improve performance, asynchronous requests are controlled using a semaphore, enabling safe parallelism.
 - Additional metadata (API status & response time) is added
+
 
 ## What I'd add next
 

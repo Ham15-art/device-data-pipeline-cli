@@ -8,7 +8,7 @@ from typing import List
 start = time.perf_counter()
 logger = logging.getLogger(__name__)
 
-# protects API from overload when implemented in line 14
+# protects API from overload when implemented
 semaphore = asyncio.Semaphore(10)
 
 
@@ -28,7 +28,6 @@ async def fetch_device_info(session, device_id):
 
             logger.debug(f"Device {device_id} completed in {duration:.3f}s")
 
-            # returns a coroutine
             return DeviceResponse(
                     device_id=device_id,
                     data=data,
@@ -43,7 +42,7 @@ async def fetch_device_info(session, device_id):
                 f"failed to fetch device {device_id} (url={url}) after {duration:.3f}s: {e}", 
                 exc_info=True
             )
-            # returns coroutine
+            
             return DeviceResponse(
                     device_id=device_id,
                     data=None,
@@ -57,11 +56,11 @@ async def fetch_all_devices(device_ids: list[str]) -> List[DeviceResponse]:
     timeout = aiohttp.ClientTimeout(total=5)
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        #each task is a coroutine object, not yet executed/run
+
         tasks = [fetch_device_info(session, device_id) for device_id in device_ids]
 
         logger.info(f"Starting API enrichment for {len(device_ids)} devices...")
-        #execute all coroutines concurrently and collect results (list of dicts)
+        
         results = await asyncio.gather(*tasks)
 
         # log summary for Api calling

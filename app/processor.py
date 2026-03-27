@@ -7,13 +7,14 @@ from app.api_client import fetch_all_devices
 import logging
 from app.models import DeviceResponse
 
+
 logger = logging.getLogger(__name__)
 
 
 def process_file(input_file: Path, output_file: Path) -> None:
     df = pd.read_csv(input_file)
 
-    # validate if all columns are existent inside table df
+    # validate if all required columns are existent inside dataframe df
     validate_required_columns(df, ["device_id", "temperature", "status"])
 
     # convert temperature to numeric
@@ -27,11 +28,11 @@ def process_file(input_file: Path, output_file: Path) -> None:
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # API ENRICHMENT STEP: async operating
+    # API ENRICHMENT starts here: asynchronous running
     device_ids = df["device_id"].tolist()
 
     try:
-        results : list[DeviceResponse] = asyncio.run(fetch_all_devices(device_ids))
+        results: list[DeviceResponse] = asyncio.run(fetch_all_devices(device_ids))
     except Exception:
         logger.error(f"API enrichment failed: ", exc_info=True)
         results = []
@@ -39,16 +40,11 @@ def process_file(input_file: Path, output_file: Path) -> None:
     if not results:
         logger.warning("No API results received, filling defaults")
         results = [
-            DeviceResponse(
-                device_id=d,
-                data=None,
-                error="no_data",
-                duration=0.0
-            )
+            DeviceResponse(device_id=d, data=None, error="no_data", duration=0.0)
             for d in device_ids
         ]
 
-    # cleaning results: by considering cases: success | exception/error , in a pythonic way.
+    # cleaning results: by considering these cases: success | exception/error , in a pythonic way.
     clean_results: list[dict[str, object]] = [
         {
             "device_id": r.device_id,
@@ -58,17 +54,21 @@ def process_file(input_file: Path, output_file: Path) -> None:
         for r in results
     ]
 
+    # format clean results as data frame
     api_df = pd.DataFrame(clean_results)
 
     # merge API data into original dataframe
     df = df.merge(api_df, on="device_id", how="left")
-    # clean output regarding time in seconds
+
+    # round api response time
     df["api_response_time"] = df["api_response_time"].astype(float).round(3)
 
+    # create csv file (output)
     df.to_csv(output_file, index=False)
 
     logger.info(f"Processing complete. Output saved to: {output_file}")
 
+    # make summary of successes and errors
     success_count = sum(1 for r in results if r.error is None)
     error_count = sum(1 for r in results if r.error is not None)
     summary = {
@@ -84,6 +84,7 @@ def process_file(input_file: Path, output_file: Path) -> None:
         json.dump(summary, f, indent=4)
 
 
+# function that categorizes temoperature entries inot low|normal|high or invalid
 def categorize_temperature(value: float) -> str:
     if pd.isna(value):
         return "invalid"
