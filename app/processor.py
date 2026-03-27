@@ -40,7 +40,7 @@ def process_file(input_file: Path, output_file: Path) -> None:
     if not results:
         logger.warning("No API results received, filling defaults")
         results = [
-            DeviceResponse(device_id=d, data=None, error="no_data", duration=0.0)
+            DeviceResponse(device_id=d, data=None, error="no_data", api_latency=0.0, queue_time=0.0, end_to_end_latency=0.0)
             for d in device_ids
         ]
 
@@ -48,8 +48,10 @@ def process_file(input_file: Path, output_file: Path) -> None:
     clean_results: list[dict[str, object]] = [
         {
             "device_id": r.device_id,
-            "api_status": "error" if r.error else "success",
-            "api_response_time": r.duration,
+            "api_status": "error" if r.error is not None else "success",
+            "api_latency": r.api_latency,
+            "queue_time": r.queue_time,
+            "end_to_end_latency": r.end_to_end_latency,
         }
         for r in results
     ]
@@ -61,7 +63,9 @@ def process_file(input_file: Path, output_file: Path) -> None:
     df = df.merge(api_df, on="device_id", how="left")
 
     # round api response time
-    df["api_response_time"] = df["api_response_time"].astype(float).round(3)
+    df["api_latency"] = df["api_latency"].astype(float).round(3)
+    df["queue_time"] = df["queue_time"].astype(float).round(3)
+    df["end_to_end_latency"] = df["end_to_end_latency"].astype(float).round(3)
 
     # create csv file (output)
     df.to_csv(output_file, index=False)
@@ -71,12 +75,18 @@ def process_file(input_file: Path, output_file: Path) -> None:
     # make summary of successes and errors
     success_count = sum(1 for r in results if r.error is None)
     error_count = sum(1 for r in results if r.error is not None)
+    avg_api_latency = round(sum(r.api_latency for r in results) / len(results), 3)
+    avg_queue_time = round(sum(r.queue_time for r in results) / len(results), 3)
+    avg_end_to_end_latency = round(sum(r.end_to_end_latency for r in results) / len(results), 3)
     summary = {
         "total_rows": len(df),
         "valid_temperatures": int(df["has_valid_temperature"].sum()),
         "invalid_temperatures": int((~df["has_valid_temperature"]).sum()),
         "api_success": success_count,
         "api_errors": error_count,
+        "avg_api_latency": avg_api_latency,
+        "avg_queue_time" : avg_queue_time,
+        "avg_end_to_end_latency" : avg_end_to_end_latency
     }
 
     summary_file = output_file.parent / "summary.json"

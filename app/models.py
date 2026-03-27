@@ -6,4 +6,6 @@ class DeviceResponse(BaseModel):
     device_id: str
     data: Optional[Dict[str, Any]]
     error: Optional[str]
-    duration: float
+    api_latency: float
+    queue_time: float
+    end_to_end_latency: float
